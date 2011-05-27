@@ -152,6 +152,19 @@ file(Config) when is_list(Config) ->
     ?line writable(Dotfile),
     file:delete(Dotfile),
 
+    Warn = <<"Definitions.1998\n"
+             "D  = [0-9]\n"
+             "Rules.\n"
+             "{L}+  : {token,{word,TokenLine,TokenChars}}.\n"
+             "Erlang code.\n">>,
+    ?line ok = file:write_file(Filename, Warn),
+    ?line error = leex:file(Filename, [warnings_as_errors]),
+    ?line error = leex:file(Filename, [return_warnings,warnings_as_errors]),
+    ?line {ok,Scannerfile,[{Filename,[{1,leex,ignored_characters}]}]} =
+	leex:file(Filename, [return_warnings]),
+    ?line {error,_,[{Filename,[{1,leex,ignored_characters}]}]} =
+	leex:file(Filename, [return_errors,warnings_as_errors]),
+
     file:delete(Filename),
     ok.
 
