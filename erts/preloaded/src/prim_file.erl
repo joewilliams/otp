@@ -67,7 +67,7 @@
 
 -include("file.hrl").
 
--define(DRV,    efile).
+-define(DRV,    "efile").
 -define(FD_DRV, "efile").
 
 -define(LARGEFILESIZE, (1 bsl 63)).
@@ -577,7 +577,7 @@ sendfile(#file_descriptor{module = ?MODULE, data = {Port, _}},
 %% Returns {ok, Port}, the Port should be used as first argument in all
 %% the following functions. Returns {error, Reason} upon failure.
 start() ->
-    try erlang:open_port({spawn, atom_to_list(?DRV)}, [binary]) of
+    try erlang:open_port({spawn, ?DRV}, [binary]) of
 	Port ->
 	    {ok, Port}
     catch
