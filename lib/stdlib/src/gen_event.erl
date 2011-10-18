@@ -235,59 +235,62 @@ fetch_msg(Parent, ServerName, MSL, Debug, Hib) ->
 	    handle_msg(Msg, Parent, ServerName, MSL, Debug1)
     end.
 
-handle_msg(Msg, Parent, ServerName, MSL, Debug) ->
-    case Msg of
-	{notify, Event} ->
-	    {Hib,MSL1} = server_notify(Event, handle_event, MSL, ServerName),
-	    loop(Parent, ServerName, MSL1, Debug, Hib);
-	{From, Tag, {sync_notify, Event}} ->
-	    {Hib, MSL1} = server_notify(Event, handle_event, MSL, ServerName),
-	    ?reply(ok),
-	    loop(Parent, ServerName, MSL1, Debug, Hib);
-	{'EXIT', From, Reason} ->
-	    MSL1 = handle_exit(From, Reason, MSL, ServerName),
-	    loop(Parent, ServerName, MSL1, Debug, false);
-	{From, Tag, {call, Handler, Query}} ->
-	    {Hib, Reply, MSL1} = server_call(Handler, Query, MSL, ServerName),
-	    ?reply(Reply),
-	    loop(Parent, ServerName, MSL1, Debug, Hib);
-	{From, Tag, {add_handler, Handler, Args}} ->
-	    {Hib, Reply, MSL1} = server_add_handler(Handler, Args, MSL),
-	    ?reply(Reply),
-	    loop(Parent, ServerName, MSL1, Debug, Hib);
-	{From, Tag, {add_sup_handler, Handler, Args, SupP}} ->
-	    {Hib, Reply, MSL1} = server_add_sup_handler(Handler, Args, MSL, SupP),
-	    ?reply(Reply),
-	    loop(Parent, ServerName, MSL1, Debug, Hib);
-	{From, Tag, {delete_handler, Handler, Args}} ->
-	    {Reply, MSL1} = server_delete_handler(Handler, Args, MSL,
-						  ServerName),
-	    ?reply(Reply),
-	    loop(Parent, ServerName, MSL1, Debug, false);
-	{From, Tag, {swap_handler, Handler1, Args1, Handler2, Args2}} ->
-	    {Hib, Reply, MSL1} = server_swap_handler(Handler1, Args1, Handler2,
-						     Args2, MSL, ServerName),
-	    ?reply(Reply),
-	    loop(Parent, ServerName, MSL1, Debug, Hib);
-	{From, Tag, {swap_sup_handler, Handler1, Args1, Handler2, Args2,
-		     Sup}} ->
-	    {Hib, Reply, MSL1} = server_swap_handler(Handler1, Args1, Handler2,
-						Args2, MSL, Sup, ServerName),
-	    ?reply(Reply),
-	    loop(Parent, ServerName, MSL1, Debug, Hib);
-	{From, Tag, stop} ->
-	    catch terminate_server(normal, Parent, MSL, ServerName),
-	    ?reply(ok);
-	{From, Tag, which_handlers} ->
-	    ?reply(the_handlers(MSL)),
-	    loop(Parent, ServerName, MSL, Debug, false);
-	{From, Tag, get_modules} ->
-	    ?reply(get_modules(MSL)),
-	    loop(Parent, ServerName, MSL, Debug, false);
-	Other  ->
-	    {Hib, MSL1} = server_notify(Other, handle_info, MSL, ServerName),
-	    loop(Parent, ServerName, MSL1, Debug, Hib)
-    end.
+handle_msg({notify, Event}, Parent, ServerName, MSL, Debug) ->
+    {Hib,MSL1} = server_notify(Event, handle_event, MSL, ServerName),
+    loop(Parent, ServerName, MSL1, Debug, Hib);
+handle_msg({From, Tag, {sync_notify, Event}}, Parent, ServerName, MSL,
+           Debug) ->
+    {Hib, MSL1} = server_notify(Event, handle_event, MSL, ServerName),
+    ?reply(ok),
+    loop(Parent, ServerName, MSL1, Debug, Hib);
+handle_msg({'EXIT', From, Reason}, Parent, ServerName, MSL, Debug) ->
+    MSL1 = handle_exit(From, Reason, MSL, ServerName),
+    loop(Parent, ServerName, MSL1, Debug, false);
+handle_msg({From, Tag, {call, Handler, Query}}, Parent, ServerName, MSL,
+           Debug) ->
+    {Hib, Reply, MSL1} = server_call(Handler, Query, MSL, ServerName),
+    ?reply(Reply),
+    loop(Parent, ServerName, MSL1, Debug, Hib);
+handle_msg({From, Tag, {add_handler, Handler, Args}}, Parent, ServerName,
+           MSL, Debug) ->
+    {Hib, Reply, MSL1} = server_add_handler(Handler, Args, MSL),
+    ?reply(Reply),
+    loop(Parent, ServerName, MSL1, Debug, Hib);
+handle_msg({From, Tag, {add_sup_handler, Handler, Args, SupP}}, Parent,
+           ServerName, MSL, Debug) ->
+    {Hib, Reply, MSL1} = server_add_sup_handler(Handler, Args, MSL, SupP),
+    ?reply(Reply),
+    loop(Parent, ServerName, MSL1, Debug, Hib);
+handle_msg({From, Tag, {delete_handler, Handler, Args}}, Parent,
+           ServerName, MSL, Debug) ->
+    {Reply, MSL1} = server_delete_handler(Handler, Args, MSL,
+    						              ServerName),
+    ?reply(Reply),
+    loop(Parent, ServerName, MSL1, Debug, false);
+handle_msg({From, Tag, {swap_handler, Handler1, Args1, Handler2, Args2}},
+           Parent, ServerName, MSL, Debug) ->
+    {Hib, Reply, MSL1} = server_swap_handler(Handler1, Args1, Handler2,
+    						                 Args2, MSL, ServerName),
+    ?reply(Reply),
+    loop(Parent, ServerName, MSL1, Debug, Hib);
+handle_msg({From, Tag, {swap_sup_handler, Handler1, Args1, Handler2, Args2,
+    	   Sup}}, Parent, ServerName, MSL, Debug) ->
+    {Hib, Reply, MSL1} = server_swap_handler(Handler1, Args1, Handler2,
+    						                 Args2, MSL, Sup, ServerName),
+    ?reply(Reply),
+    loop(Parent, ServerName, MSL1, Debug, Hib);
+handle_msg({From, Tag, stop}, Parent, ServerName, MSL, _Debug) ->
+    catch terminate_server(normal, Parent, MSL, ServerName),
+    ?reply(ok);
+handle_msg({From, Tag, which_handlers}, Parent, ServerName, MSL, Debug) ->
+    ?reply(the_handlers(MSL)),
+    loop(Parent, ServerName, MSL, Debug, false);
+handle_msg({From, Tag, get_modules}, Parent, ServerName, MSL, Debug) ->
+    ?reply(get_modules(MSL)),
+    loop(Parent, ServerName, MSL, Debug, false);
+handle_msg(Other, Parent, ServerName, MSL, Debug) ->
+    {Hib, MSL1} = server_notify(Other, handle_info, MSL, ServerName),
+    loop(Parent, ServerName, MSL1, Debug, Hib).
 
 terminate_server(Reason, Parent, MSL, ServerName) ->
     stop_handlers(MSL, ServerName),
@@ -649,43 +652,44 @@ report_terminate(Handler, Reason, State, LastIn, SName) ->
 report_error(_Handler, normal, _, _, _)             -> ok;
 report_error(_Handler, shutdown, _, _, _)           -> ok;
 report_error(_Handler, {swapped,_,_}, _, _, _)      -> ok;
+report_error(Handler, {'EXIT',{undef,[{M,F,A,L}|MFAs]}}, State, LastIn, SName) ->
+    Reason =
+        case code:is_loaded(M) of
+            false ->
+                {'module could not be loaded',[{M,F,A,L}|MFAs]};
+            _ ->
+                case erlang:function_exported(M, F, length(A)) of
+                    true ->
+                        {undef,[{M,F,A,L}|MFAs]};
+                    false ->
+                        {'function not exported',[{M,F,A,L}|MFAs]}
+                end
+        end,
+    report_error1(Handler, Reason, State, LastIn, SName);
+report_error(Handler, {'EXIT', Reason}, State, LastIn, SName) ->
+    report_error1(Handler, Reason, State, LastIn, SName);
 report_error(Handler, Reason, State, LastIn, SName) ->
-    Reason1 = 
-	case Reason of
-	    {'EXIT',{undef,[{M,F,A,L}|MFAs]}} ->
-		case code:is_loaded(M) of
-		    false ->
-			{'module could not be loaded',[{M,F,A,L}|MFAs]};
-		    _ ->
-			case erlang:function_exported(M, F, length(A)) of
-			    true ->
-				{undef,[{M,F,A,L}|MFAs]};
-			    false ->
-				{'function not exported',[{M,F,A,L}|MFAs]}
-			end
-		end;
-	    {'EXIT',Why} ->
-		Why;
-	    _ ->
-		Reason
-	end,
+    report_error1(Handler, Reason, State, LastIn, SName).
+
+report_error1(Handler, Reason, State, LastIn, SName) ->
     Mod = Handler#handler.module,
-    FmtState = case erlang:function_exported(Mod, format_status, 2) of
-		   true ->
-		       Args = [get(), State],
-		       case catch Mod:format_status(terminate, Args) of
-			   {'EXIT', _} -> State;
-			   Else -> Else
-		       end;
-		   _ ->
-		       State
-	       end,
+    FmtState =
+        case erlang:function_exported(Mod, format_status, 2) of
+            true ->
+                Args = [get(), State],
+                case catch Mod:format_status(terminate, Args) of
+                    {'EXIT', _} -> State;
+                    Else -> Else
+                end;
+            _ ->
+                State
+        end,
     error_msg("** gen_event handler ~p crashed.~n"
-	      "** Was installed in ~p~n"
-	      "** Last event was: ~p~n"
-	      "** When handler state == ~p~n"
-	      "** Reason == ~p~n",
-	      [handler(Handler),SName,LastIn,FmtState,Reason1]).
+              "** Was installed in ~p~n"
+              "** Last event was: ~p~n"
+              "** When handler state == ~p~n"
+              "** Reason == ~p~n",
+              [handler(Handler),SName,LastIn,FmtState,Reason]).
 
 handler(Handler) when not Handler#handler.id ->
     Handler#handler.module;
